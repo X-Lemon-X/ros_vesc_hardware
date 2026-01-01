@@ -1,0 +1,120 @@
+<?xml version="1.0"?>
+<robot xmlns:xacro="http://www.ros.org/wiki/xacro">
+
+  <xacro:macro name="vesc_ros2_control" params="name">
+
+    <ros2_control name="VescSystem" type="system">
+
+      <hardware>
+        <plugin>vesc_hardware/MCVescHardware</plugin>
+        <param name="can_interface">can0</param>
+        <param name="command_interface_type">effort,effort,effort,effort</param>
+        <param name="gear_ratios">4.375,4.375,4.375,4.375</param>
+        <param name="polar_pairs">7,7,7,7</param>
+        <param name="current_to_torque">0.0665,0.0665,0.0665,0.0665</param>        <!-- / 66.5 mNm/A is the torque constant for the 6534 VESC BLDC motor -->
+        <param name="vesc_base_ids">20,21,22,23</param>
+      </hardware>
+
+
+      <joint name="left_wheel_joint">
+        <command_interface name="velocity">
+          <param name="min">-9000</param>
+          <param name="max">9000</param>
+        </command_interface>
+        <command_interface name="current">
+          <param name="min">-60</param>
+          <param name="max">60</param>
+        </command_interface>
+        <command_interface name="effort">
+          <param name="min">-7</param>
+          <param name="max">7</param>
+        </command_interface>
+        <command_interface name="position"></command_interface>
+
+        <state_interface name="position"/>
+        <state_interface name="velocity"/>
+        <state_interface name="current"/>
+        <state_interface name="effort"/>
+        <state_interface name="temperature"/>
+        <state_interface name="watt_hours"/>
+        <state_interface name="watt_hours_charged"/>
+      </joint>
+
+      <joint name="right_wheel_joint">
+        <command_interface name="velocity">
+          <param name="min">-40</param>
+          <param name="max">40</param>
+        </command_interface>
+        <command_interface name="current">
+          <param name="min">-60</param>
+          <param name="max">60</param>
+        </command_interface>
+        <command_interface name="effort">
+          <param name="min">-7</param>
+          <param name="max">7</param>
+        </command_interface>
+        <command_interface name="position"></command_interface>
+
+        <state_interface name="position"/>
+        <state_interface name="velocity"/>
+        <state_interface name="current"/>
+        <state_interface name="effort"/>
+        <state_interface name="temperature"/>
+        <state_interface name="watt_hours"/>
+        <state_interface name="watt_hours_charged"/>
+      </joint>
+
+
+      <joint name="left_wheel_joint_2">
+        <command_interface name="velocity">
+          <param name="min">-40</param>
+          <param name="max">40</param>
+        </command_interface>
+        <command_interface name="current">
+          <param name="min">-60</param>
+          <param name="max">60</param>
+        </command_interface>
+        <command_interface name="effort">
+          <param name="min">-7</param>
+          <param name="max">7</param>
+        </command_interface>
+        <command_interface name="position"></command_interface>
+
+        <state_interface name="position"/>
+        <state_interface name="velocity"/>
+        <state_interface name="current"/>
+        <state_interface name="effort"/>
+        <state_interface name="temperature"/>
+        <state_interface name="watt_hours"/>
+        <state_interface name="watt_hours_charged"/>
+      </joint>
+
+      <joint name="right_wheel_joint_2">
+        <command_interface name="velocity">
+          <param name="min">-40</param>
+          <param name="max">40</param>
+        </command_interface>
+        <command_interface name="current">
+          <param name="min">-60</param>
+          <param name="max">60</param>
+        </command_interface>
+        <command_interface name="effort">
+          <param name="min">-7</param>
+          <param name="max">7</param>
+        </command_interface>
+        <command_interface name="position"></command_interface>
+
+        <state_interface name="position"/>
+        <state_interface name="velocity"/>
+        <state_interface name="current"/>
+        <state_interface name="effort"/>
+        <state_interface name="temperature"/>
+        <state_interface name="watt_hours"/>
+        <state_interface name="watt_hours_charged"/>
+      </joint>
+
+    </ros2_control>
+
+  </xacro:macro>
+
+</robot>

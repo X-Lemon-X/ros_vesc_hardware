@@ -1,0 +1,7 @@
+<library path="vesc_hardware">
+  <class name="vesc_hardware/MCVescHardware" type="nomad_hardware::MCVescHardware" base_class_type="hardware_interface::SystemInterface">
+    <description>
+      The ros2_control barometer interface system hardware interface-type.
+    </description>
+  </class>
+</library>
