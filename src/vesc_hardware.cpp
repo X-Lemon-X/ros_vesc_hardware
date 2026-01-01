@@ -34,13 +34,15 @@ SOFTWARE.
 #include "can_device/can_messages.h"
 
 #include "vesc_hardware/vesc_hardware.hpp"
+#include "ari_shared_types/status.hpp"
+#include "ari_shared_types/status_hardware.hpp"
 
-
-using namespace nomad_hardware;
 
 namespace {
 constexpr const char *nameHardwareInterface = "MCVescHardware";
 } // namespace
+
+using namespace ari;
 
 template <typename T> Result<std::vector<T>> parse_string_array_to_vector(const std::string &input) {
   std::vector<T> result;
@@ -68,30 +70,31 @@ template <typename T> Result<std::vector<T>> parse_string_array_to_vector(const 
   return Result<std::vector<T>>::OK(std::move(result));
 }
 
-Status MCVescHardware::init(const hardware_interface::HardwareInfo &info) {
-  (void)info;
-  prefix = info_.hardware_parameters["prefix"];
+Status MCVescHardware::init(const hardware_interface::HardwareComponentInterfaceParams &iparams) {
+  // (void)info;
+  auto& info = iparams.hardware_info;
+  prefix = info.hardware_parameters.at("prefix");
   // can_interface_name is the name of the can interface we will use to communicate with the VESC
-  auto can_interface_name = info_.hardware_parameters["can_interface"];
+  auto can_interface_name = info.hardware_parameters.at("can_interface");
   // command_interface, whitch type of command interface we will use to control BLDC motors, velocity pos, curent, effort pos?
-  auto maybe_command_interface_type = info_.hardware_parameters["command_interface_type"];
+  auto maybe_command_interface_type = info.hardware_parameters.at("command_interface_type");
   // Gear ratio
-  auto maybe_gear_ratio = info_.hardware_parameters["gear_ratios"];
+  auto maybe_gear_ratio = info.hardware_parameters.at("gear_ratios");
   // mNm/A is the torque constant for the VESC motor
-  auto maybe_current_to_torque = info_.hardware_parameters["current_to_torque"];
+  auto maybe_current_to_torque = info.hardware_parameters.at("current_to_torque");
   // polar pairs is the number of pole pairs in the motor, used for calculating the speed
-  auto maybe_polar_pairs = info_.hardware_parameters["polar_pairs"];
+  auto maybe_polar_pairs = info.hardware_parameters.at("polar_pairs");
 
-  auto maybe_vesc_base_ids = info_.hardware_parameters.find("vesc_base_ids");
+  auto maybe_vesc_base_ids = info.hardware_parameters.find("vesc_base_ids");
 
-  NOMAD_ASSING_OR_RETURN(array_command_interface_types,
+  ARI_ASSING_OR_RETURN(array_command_interface_types,
                          parse_string_array_to_vector<std::string>(maybe_command_interface_type));
-  NOMAD_ASSING_OR_RETURN(array_gear_ratios, parse_string_array_to_vector<double>(maybe_gear_ratio));
-  NOMAD_ASSING_OR_RETURN(array_current_to_torque, parse_string_array_to_vector<double>(maybe_current_to_torque));
-  NOMAD_ASSING_OR_RETURN(array_polar_pairs, parse_string_array_to_vector<int>(maybe_polar_pairs));
-  NOMAD_ASSING_OR_RETURN(array_vesc_base_ids, parse_string_array_to_vector<int>(maybe_vesc_base_ids->second));
+  ARI_ASSING_OR_RETURN(array_gear_ratios, parse_string_array_to_vector<double>(maybe_gear_ratio));
+  ARI_ASSING_OR_RETURN(array_current_to_torque, parse_string_array_to_vector<double>(maybe_current_to_torque));
+  ARI_ASSING_OR_RETURN(array_polar_pairs, parse_string_array_to_vector<int>(maybe_polar_pairs));
+  ARI_ASSING_OR_RETURN(array_vesc_base_ids, parse_string_array_to_vector<int>(maybe_vesc_base_ids->second));
 
-  auto joint_count = info_.joints.size();
+  auto joint_count = info.joints.size();
   if(array_command_interface_types.size() != joint_count) {
     return Status::ExpressionValidationError(
     "command_interface_type size does not match the number of joints");
@@ -141,7 +144,7 @@ Status MCVescHardware::init(const hardware_interface::HardwareInfo &info) {
     }
   }
 
-  for(const hardware_interface::ComponentInfo &joint : info_.joints) {
+  for(const hardware_interface::ComponentInfo &joint : info.joints) {
     if(joint.command_interfaces.size() != 4) {
       return Status::ExpressionValidationError("Each joint must have exactly 4 command interfaces.");
     }
@@ -174,13 +177,13 @@ Status MCVescHardware::init(const hardware_interface::HardwareInfo &info) {
     joints[i].polar_pairs       = static_cast<double>(array_polar_pairs[i]);
     joints[i].current_to_torque = array_current_to_torque[i];
     joints[i].vesc_base_id      = array_vesc_base_ids[i];
-    joints[i].name              = info_.joints[i].name;
+    joints[i].name              = info.joints[i].name;
     RCLCPP_INFO(rclcpp::get_logger(nameHardwareInterface), "Joint %zu: name=%s command_interface_type=%s, gear_ratio=%.3f, polar_pairs=%d, current_to_torque=%.5f, vesc_base_id=%d",
                 i, joints[i].name.c_str(), command_interface_type.c_str(), joints[i].gear_ratio,
                 array_polar_pairs[i], joints[i].current_to_torque, joints[i].vesc_base_id);
   }
 
-  NOMAD_ASSING_TO_OR_RETURN(can_driver, CanDriver::Make(can_interface_name));
+  ARI_ASSING_TO_OR_RETURN(can_driver, CanDriver::Make(can_interface_name));
 
 
   RCLCPP_DEBUG(rclcpp::get_logger(nameHardwareInterface), "CAN driver created on interface %s",
@@ -190,11 +193,11 @@ Status MCVescHardware::init(const hardware_interface::HardwareInfo &info) {
   return Status::OK();
 }
 
-hardware_interface::CallbackReturn MCVescHardware::on_init(const hardware_interface::HardwareInfo &info) {
-  if(hardware_interface::SystemInterface::on_init(info) != hardware_interface::CallbackReturn::SUCCESS) {
+hardware_interface::CallbackReturn MCVescHardware::on_init(const hardware_interface::HardwareComponentInterfaceParams & params) {
+  if(hardware_interface::SystemInterface::on_init(params) != hardware_interface::CallbackReturn::SUCCESS) {
     return hardware_interface::CallbackReturn::ERROR;
   }
-  auto status = init(info);
+  auto status = init(params);
   if(!status.ok()) {
     RCLCPP_ERROR(rclcpp::get_logger(nameHardwareInterface), "Failed to initialize MCVescHardware: %s",
                  status.to_string().c_str());
@@ -223,42 +226,42 @@ hardware_interface::CallbackReturn MCVescHardware::on_configure(const rclcpp_lif
     uint32_t st5_id = (CAN_VESC_FLEFT_STATUS_5_FRAME_ID & 0xffffff00) | static_cast<uint32_t>(joints[i].vesc_base_id);
     uint32_t st6_id = (CAN_VESC_FLEFT_STATUS_6_FRAME_ID & 0xffffff00) | static_cast<uint32_t>(joints[i].vesc_base_id);
 
-    NOMAD_RC_RETURN_ON_ERROR_NAM(can_driver->add_callback(st1_id,
+    ARI_HW_RETURN_ON_ERROR_NAM(can_driver->add_callback(st1_id,
                                                           std::bind(&MCVescHardware::can_callback_status_1,
                                                                     this, std::placeholders::_1,
                                                                     std::placeholders::_2, std::placeholders::_3),
                                                           &joints[i]),
                                  nameHardwareInterface);
 
-    NOMAD_RC_RETURN_ON_ERROR_NAM(can_driver->add_callback(st2_id,
+    ARI_HW_RETURN_ON_ERROR_NAM(can_driver->add_callback(st2_id,
                                                           std::bind(&MCVescHardware::can_callback_status_2,
                                                                     this, std::placeholders::_1,
                                                                     std::placeholders::_2, std::placeholders::_3),
                                                           &joints[i]),
                                  nameHardwareInterface);
 
-    NOMAD_RC_RETURN_ON_ERROR_NAM(can_driver->add_callback(st3_id,
+    ARI_HW_RETURN_ON_ERROR_NAM(can_driver->add_callback(st3_id,
                                                           std::bind(&MCVescHardware::can_callback_status_3,
                                                                     this, std::placeholders::_1,
                                                                     std::placeholders::_2, std::placeholders::_3),
                                                           &joints[i]),
                                  nameHardwareInterface);
 
-    NOMAD_RC_RETURN_ON_ERROR_NAM(can_driver->add_callback(st4_id,
+    ARI_HW_RETURN_ON_ERROR_NAM(can_driver->add_callback(st4_id,
                                                           std::bind(&MCVescHardware::can_callback_status_4,
                                                                     this, std::placeholders::_1,
                                                                     std::placeholders::_2, std::placeholders::_3),
                                                           &joints[i]),
                                  nameHardwareInterface);
 
-    NOMAD_RC_RETURN_ON_ERROR_NAM(can_driver->add_callback(st5_id,
+    ARI_HW_RETURN_ON_ERROR_NAM(can_driver->add_callback(st5_id,
                                                           std::bind(&MCVescHardware::can_callback_status_5,
                                                                     this, std::placeholders::_1,
                                                                     std::placeholders::_2, std::placeholders::_3),
                                                           &joints[i]),
                                  nameHardwareInterface);
 
-    NOMAD_RC_RETURN_ON_ERROR_NAM(can_driver->add_callback(st6_id,
+    ARI_HW_RETURN_ON_ERROR_NAM(can_driver->add_callback(st6_id,
                                                           std::bind(&MCVescHardware::can_callback_status_6,
                                                                     this, std::placeholders::_1,
                                                                     std::placeholders::_2, std::placeholders::_3),
@@ -272,7 +275,7 @@ hardware_interface::CallbackReturn MCVescHardware::on_configure(const rclcpp_lif
 
 hardware_interface::CallbackReturn MCVescHardware::on_activate(const rclcpp_lifecycle::State &previous_state) {
   (void)previous_state;
-  NOMAD_RC_RETURN_ON_ERROR_NAM(can_driver->open_can(), nameHardwareInterface);
+  ARI_HW_RETURN_ON_ERROR_NAM(can_driver->open_can(), nameHardwareInterface);
 
   for(size_t i = 0; i < joints.size(); i++) {
     joints[i].position           = 0.0;
@@ -301,7 +304,7 @@ hardware_interface::CallbackReturn MCVescHardware::on_activate(const rclcpp_life
 
 hardware_interface::CallbackReturn MCVescHardware::on_deactivate(const rclcpp_lifecycle::State &previous_state) {
   (void)previous_state;
-  NOMAD_RC_RETURN_ON_ERROR_NAM(CanDriver::close_can(can_driver), nameHardwareInterface);
+  ARI_HW_RETURN_ON_ERROR_NAM(CanDriver::close_can(can_driver), nameHardwareInterface);
 
   RCLCPP_INFO(rclcpp::get_logger(nameHardwareInterface), "System successfully deactivated!");
   return hardware_interface::CallbackReturn::SUCCESS;
@@ -487,4 +490,4 @@ void MCVescHardware::can_callback_status_6(CanDriver &can, const CanFrame &frame
 
 
 #include "pluginlib/class_list_macros.hpp"
-PLUGINLIB_EXPORT_CLASS(nomad_hardware::MCVescHardware, hardware_interface::SystemInterface)
+PLUGINLIB_EXPORT_CLASS(MCVescHardware, hardware_interface::SystemInterface)

@@ -41,17 +41,18 @@ SOFTWARE.
 #include "can_device/can_device.hpp"
 #include "vesc_hardware/visiblity_control.h"
 
-namespace nomad_hardware {
+
+using namespace ari;
 
 class MCVescHardware : public hardware_interface::SystemInterface {
 public:
   RCLCPP_SHARED_PTR_DEFINITIONS(MCVescHardware)
 
   HARDWARE_PUBLIC
-  hardware_interface::CallbackReturn on_init(const hardware_interface::HardwareInfo &info) override;
+  hardware_interface::CallbackReturn on_init(const hardware_interface::HardwareComponentInterfaceParams & params) override;
 
 
-  Status init(const hardware_interface::HardwareInfo &info);
+  Status init(const hardware_interface::HardwareComponentInterfaceParams & params);
 
   HARDWARE_PUBLIC
   hardware_interface::CallbackReturn on_configure(const rclcpp_lifecycle::State &previous_state) override;
@@ -116,4 +117,3 @@ private:
   std::shared_ptr<CanDriver> can_driver;
 };
 
-} // namespace nomad_hardware
