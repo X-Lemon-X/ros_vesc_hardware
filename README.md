@@ -61,7 +61,7 @@ Use the hardware interface through standard `ros2_control` controller managers a
 
 ## Authors
 
-- Patryk Dudziński (dodpat02@gmail.com)
+- Patryk Dudziński
 
 ## License
 
