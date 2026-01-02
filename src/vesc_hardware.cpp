@@ -24,18 +24,18 @@ SOFTWARE.
  * Authors: Patryk Dudziński
  */
 
+#include "can_device/can_device.hpp"
+#include "can_device/can_messages.h"
 #include "hardware_interface/actuator_interface.hpp"
 #include "hardware_interface/handle.hpp"
 #include "hardware_interface/hardware_info.hpp"
 #include "hardware_interface/system_interface.hpp"
 #include "hardware_interface/types/hardware_interface_return_values.hpp"
 #include "rclcpp/macros.hpp"
-#include "can_device/can_device.hpp"
-#include "can_device/can_messages.h"
 
-#include "vesc_hardware/vesc_hardware.hpp"
 #include "ari_shared_types/status.hpp"
 #include "ari_shared_types/status_hardware.hpp"
+#include "vesc_hardware/vesc_hardware.hpp"
 
 
 namespace {
@@ -72,8 +72,8 @@ template <typename T> Result<std::vector<T>> parse_string_array_to_vector(const 
 
 Status MCVescHardware::init(const hardware_interface::HardwareComponentInterfaceParams &iparams) {
   // (void)info;
-  auto& info = iparams.hardware_info;
-  prefix = info.hardware_parameters.at("prefix");
+  auto &info = iparams.hardware_info;
+  prefix     = info.hardware_parameters.at("prefix");
   // can_interface_name is the name of the can interface we will use to communicate with the VESC
   auto can_interface_name = info.hardware_parameters.at("can_interface");
   // command_interface, whitch type of command interface we will use to control BLDC motors, velocity pos, curent, effort pos?
@@ -87,12 +87,12 @@ Status MCVescHardware::init(const hardware_interface::HardwareComponentInterface
 
   auto maybe_vesc_base_ids = info.hardware_parameters.find("vesc_base_ids");
 
-  ARI_ASSING_OR_RETURN(array_command_interface_types,
-                         parse_string_array_to_vector<std::string>(maybe_command_interface_type));
-  ARI_ASSING_OR_RETURN(array_gear_ratios, parse_string_array_to_vector<double>(maybe_gear_ratio));
-  ARI_ASSING_OR_RETURN(array_current_to_torque, parse_string_array_to_vector<double>(maybe_current_to_torque));
-  ARI_ASSING_OR_RETURN(array_polar_pairs, parse_string_array_to_vector<int>(maybe_polar_pairs));
-  ARI_ASSING_OR_RETURN(array_vesc_base_ids, parse_string_array_to_vector<int>(maybe_vesc_base_ids->second));
+  ARI_ASIGN_OR_RETURN(array_command_interface_types,
+                      parse_string_array_to_vector<std::string>(maybe_command_interface_type));
+  ARI_ASIGN_OR_RETURN(array_gear_ratios, parse_string_array_to_vector<double>(maybe_gear_ratio));
+  ARI_ASIGN_OR_RETURN(array_current_to_torque, parse_string_array_to_vector<double>(maybe_current_to_torque));
+  ARI_ASIGN_OR_RETURN(array_polar_pairs, parse_string_array_to_vector<int>(maybe_polar_pairs));
+  ARI_ASIGN_OR_RETURN(array_vesc_base_ids, parse_string_array_to_vector<int>(maybe_vesc_base_ids->second));
 
   auto joint_count = info.joints.size();
   if(array_command_interface_types.size() != joint_count) {
@@ -183,7 +183,7 @@ Status MCVescHardware::init(const hardware_interface::HardwareComponentInterface
                 array_polar_pairs[i], joints[i].current_to_torque, joints[i].vesc_base_id);
   }
 
-  ARI_ASSING_TO_OR_RETURN(can_driver, CanDriver::Make(can_interface_name));
+  ARI_ASIGN_TO_OR_RETURN(can_driver, CanDriver::Make(can_interface_name));
 
 
   RCLCPP_DEBUG(rclcpp::get_logger(nameHardwareInterface), "CAN driver created on interface %s",
@@ -193,7 +193,8 @@ Status MCVescHardware::init(const hardware_interface::HardwareComponentInterface
   return Status::OK();
 }
 
-hardware_interface::CallbackReturn MCVescHardware::on_init(const hardware_interface::HardwareComponentInterfaceParams & params) {
+hardware_interface::CallbackReturn
+MCVescHardware::on_init(const hardware_interface::HardwareComponentInterfaceParams &params) {
   if(hardware_interface::SystemInterface::on_init(params) != hardware_interface::CallbackReturn::SUCCESS) {
     return hardware_interface::CallbackReturn::ERROR;
   }
@@ -227,46 +228,46 @@ hardware_interface::CallbackReturn MCVescHardware::on_configure(const rclcpp_lif
     uint32_t st6_id = (CAN_VESC_FLEFT_STATUS_6_FRAME_ID & 0xffffff00) | static_cast<uint32_t>(joints[i].vesc_base_id);
 
     ARI_HW_RETURN_ON_ERROR_NAM(can_driver->add_callback(st1_id,
-                                                          std::bind(&MCVescHardware::can_callback_status_1,
-                                                                    this, std::placeholders::_1,
-                                                                    std::placeholders::_2, std::placeholders::_3),
-                                                          &joints[i]),
-                                 nameHardwareInterface);
+                                                        std::bind(&MCVescHardware::can_callback_status_1, this,
+                                                                  std::placeholders::_1, std::placeholders::_2,
+                                                                  std::placeholders::_3),
+                                                        &joints[i]),
+                               nameHardwareInterface);
 
     ARI_HW_RETURN_ON_ERROR_NAM(can_driver->add_callback(st2_id,
-                                                          std::bind(&MCVescHardware::can_callback_status_2,
-                                                                    this, std::placeholders::_1,
-                                                                    std::placeholders::_2, std::placeholders::_3),
-                                                          &joints[i]),
-                                 nameHardwareInterface);
+                                                        std::bind(&MCVescHardware::can_callback_status_2, this,
+                                                                  std::placeholders::_1, std::placeholders::_2,
+                                                                  std::placeholders::_3),
+                                                        &joints[i]),
+                               nameHardwareInterface);
 
     ARI_HW_RETURN_ON_ERROR_NAM(can_driver->add_callback(st3_id,
-                                                          std::bind(&MCVescHardware::can_callback_status_3,
-                                                                    this, std::placeholders::_1,
-                                                                    std::placeholders::_2, std::placeholders::_3),
-                                                          &joints[i]),
-                                 nameHardwareInterface);
+                                                        std::bind(&MCVescHardware::can_callback_status_3, this,
+                                                                  std::placeholders::_1, std::placeholders::_2,
+                                                                  std::placeholders::_3),
+                                                        &joints[i]),
+                               nameHardwareInterface);
 
     ARI_HW_RETURN_ON_ERROR_NAM(can_driver->add_callback(st4_id,
-                                                          std::bind(&MCVescHardware::can_callback_status_4,
-                                                                    this, std::placeholders::_1,
-                                                                    std::placeholders::_2, std::placeholders::_3),
-                                                          &joints[i]),
-                                 nameHardwareInterface);
+                                                        std::bind(&MCVescHardware::can_callback_status_4, this,
+                                                                  std::placeholders::_1, std::placeholders::_2,
+                                                                  std::placeholders::_3),
+                                                        &joints[i]),
+                               nameHardwareInterface);
 
     ARI_HW_RETURN_ON_ERROR_NAM(can_driver->add_callback(st5_id,
-                                                          std::bind(&MCVescHardware::can_callback_status_5,
-                                                                    this, std::placeholders::_1,
-                                                                    std::placeholders::_2, std::placeholders::_3),
-                                                          &joints[i]),
-                                 nameHardwareInterface);
+                                                        std::bind(&MCVescHardware::can_callback_status_5, this,
+                                                                  std::placeholders::_1, std::placeholders::_2,
+                                                                  std::placeholders::_3),
+                                                        &joints[i]),
+                               nameHardwareInterface);
 
     ARI_HW_RETURN_ON_ERROR_NAM(can_driver->add_callback(st6_id,
-                                                          std::bind(&MCVescHardware::can_callback_status_6,
-                                                                    this, std::placeholders::_1,
-                                                                    std::placeholders::_2, std::placeholders::_3),
-                                                          &joints[i]),
-                                 nameHardwareInterface);
+                                                        std::bind(&MCVescHardware::can_callback_status_6, this,
+                                                                  std::placeholders::_1, std::placeholders::_2,
+                                                                  std::placeholders::_3),
+                                                        &joints[i]),
+                               nameHardwareInterface);
   }
 
   RCLCPP_INFO(rclcpp::get_logger(nameHardwareInterface), "Successfully configured!");
